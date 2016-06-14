@@ -27,30 +27,28 @@ int main(void)
         return 2;
     }
  
-    // read in first three blocks to test
-    fread(&block_value, sizeof(char), 512, card_ptr);
-    fread(&block_value, sizeof(char), 512, card_ptr);
-    fread(&block_value, sizeof(char), 512, card_ptr);
-
     // set up loop to find jpg signatures
-    if (block_value[0] == (unsigned char)0xff && block_value[1] == (unsigned char)0xd8 && block_value[2] == (unsigned char)0xff)
+    while (fread(&block_value, sizeof(char), 512, card_ptr) == 512)
     {
-        // create output_name for output file
-        sprintf(output_name, "%03d.jpg", output_counter);
-        
-        // open output file and error check
-        output_ptr = fopen(output_name, "w");
-        if (output_ptr == NULL)
+        if (block_value[0] == (unsigned char)0xff && block_value[1] == (unsigned char)0xd8 && block_value[2] == (unsigned char)0xff)
         {
-            printf("Could not create output file.\n");
-            return 3;
+            // create output_name for output file
+            sprintf(output_name, "%03d.jpg", output_counter);
+            
+            // open output file and error check
+            output_ptr = fopen(output_name, "w");
+            if (output_ptr == NULL)
+            {
+                printf("Could not create output file.\n");
+                return 3;
+            }
+            
+            // write output file, close, and iterate name
+            fwrite(&block_value, sizeof(char), 512, output_ptr);
+            fclose(output_ptr);
+            output_counter++;
+            sprintf(output_name, "%03d.jpg", output_counter);
         }
-        
-        // write output file, close, and iterate name
-        fwrite(&block_value, sizeof(char), 512, output_ptr);
-        fclose(output_ptr);
-        output_counter++;
-        sprintf(output_name, "%03d.jpg", output_counter);
     }
 
     // TEST: print block_value
