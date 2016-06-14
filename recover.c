@@ -18,6 +18,7 @@ int main(void)
     unsigned char block_value[512] = {0}; // buffer for block values
     int output_counter = 0; // numbers for output file names
     char output_name[8] = {0}; // string for output file names
+    char output_toggle = 0; // track whether an output file is open or not
 
     // open input file and error check
     card_ptr = fopen("card.raw", "r");
@@ -27,11 +28,18 @@ int main(void)
         return 2;
     }
  
-    // set up loop to find jpg signatures
+    // loop through all full blocks in file
     while (fread(&block_value, sizeof(char), 512, card_ptr) == 512)
     {
+        // start new files whenever a jpg signature is found
         if (block_value[0] == (unsigned char)0xff && block_value[1] == (unsigned char)0xd8 && block_value[2] == (unsigned char)0xff)
         {
+            // close any open output files
+            if (output_toggle == 1)
+            {
+                fclose(output_ptr);
+            }
+            
             // create output_name for output file
             sprintf(output_name, "%03d.jpg", output_counter);
             
@@ -43,23 +51,18 @@ int main(void)
                 return 3;
             }
             
-            // write output file, close, and iterate name
+            // write output file, iterate name counter, toggle output_toggle
             fwrite(&block_value, sizeof(char), 512, output_ptr);
-            fclose(output_ptr);
             output_counter++;
-            sprintf(output_name, "%03d.jpg", output_counter);
+            output_toggle = 1;
+        }
+        else if (output_toggle == 1)
+        {
+            // write the block to the open file
+            fwrite(&block_value, sizeof(char), 512, output_ptr);
         }
     }
-
-    // TEST: print block_value
-    for (int i = 0; i < sizeof(block_value); i++)
-    {
-        printf("%x", block_value[i]);
-    }
-    printf("\n\n");
     
     // close input file
     fclose(card_ptr);
 }
-
-// Every time there is a new jpg, I will make a new file and start writing, just like copy.
